@@ -8,7 +8,8 @@
       "Bash(then cat nul)",
       "Bash(else echo \"File doesn''t exist\")",
       "Bash(fi)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
