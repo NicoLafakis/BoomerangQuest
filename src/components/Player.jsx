@@ -2,24 +2,33 @@ import React from 'react';
 import { PLAYER_WIDTH, PLAYER_HEIGHT } from '../constants/gameConstants';
 
 function Player({ player }) {
-  const { x, y, facingRight, isJumping, isDashing, isWallSliding, invincible, animationFrame, velocityX } = player;
-  
+  const {
+    x, y, facingRight, isJumping, isDashing, isWallSliding, invincible, animationFrame, velocityX,
+    scaleX: playerScaleX = 1, scaleY: playerScaleY = 1, bodyTilt = 0, capeOffset = 0
+  } = player;
+
   // Check if actually moving horizontally
   const isMoving = Math.abs(velocityX || 0) > 0.5;
-  
+
   // Determine animation state for visual effects
-  const cloakWave = Math.sin(animationFrame * 0.2) * 3;
+  const cloakWave = capeOffset + Math.sin(animationFrame * 0.15) * 2; // Use cape physics
   const breathe = Math.sin(animationFrame * 0.1) * 1;
-  
+
   // Flash when invincible
   const opacity = invincible ? (Math.floor(animationFrame / 3) % 2 === 0 ? 0.5 : 1) : 1;
-  
-  // Scale direction
-  const scaleX = facingRight ? 1 : -1;
-  
+
+  // Scale direction (horizontal flip for facing) * squash/stretch
+  const finalScaleX = (facingRight ? 1 : -1) * playerScaleX;
+  const finalScaleY = playerScaleY;
+  const wallSlideScaleX = facingRight ? 1 : -1; // For wall slide particles
+
   return (
-    <g 
-      transform={`translate(${x + PLAYER_WIDTH/2}, ${y + PLAYER_HEIGHT/2}) scale(${scaleX}, 1)`}
+    <g
+      transform={`
+        translate(${x + PLAYER_WIDTH/2}, ${y + PLAYER_HEIGHT/2})
+        scale(${finalScaleX}, ${finalScaleY})
+        rotate(${bodyTilt})
+      `}
       opacity={opacity}
     >
       {/* Cloak shadow/depth */}

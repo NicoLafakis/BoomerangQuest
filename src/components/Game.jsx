@@ -25,7 +25,9 @@ import PhantomKing, { BossProjectile } from './PhantomKing';
 import Powerup from './Powerup';
 import Particles, {
   createHitParticles, createDeathParticles, createScoreParticle,
-  createAmbientParticles, updateParticle
+  createAmbientParticles, updateParticle,
+  createFootstepParticles, createJumpParticles, createLandingParticles,
+  createDashBurstParticles, createDashTrailParticle, createBoomerangTrailParticle
 } from './Particles';
 import HUD, { TitleScreen, GameOverScreen, VictoryScreen, ZoneTransition } from './HUD';
 
@@ -50,7 +52,32 @@ const initialPlayerState = () => ({
   jumpLevel: 1, // 1 = normal, 2-4 = multi-jump levels
   jumpsRemaining: 1,
   speedBoost: 0, // Speed powerup timer
-  jumpEffectIntensity: 0 // Visual effect for multi-jump
+  jumpEffectIntensity: 0, // Visual effect for multi-jump
+  // Input feel properties
+  accelerationProgress: 0, // 0-1, for smooth acceleration
+  decelerationProgress: 0, // 0-1, for smooth deceleration
+  coyoteTimer: 0, // Frames of jump grace after leaving platform
+  jumpBufferTimer: 0, // Frames to remember jump input
+  wasGrounded: false, // Track landing moment
+  landingSquash: 0, // 0-1, squash animation intensity
+  jumpHoldTime: 0, // Track how long jump is held for variable height
+  jumpAnticipation: 0, // Frames of anticipation crouch before jump
+  // Cape physics
+  capeOffset: 0, // Cape position offset
+  capeVelocity: 0, // Cape physics velocity
+  // Body transform for animations
+  bodyTilt: 0, // Body rotation during movement
+  scaleX: 1, // Horizontal scale (for squash/stretch)
+  scaleY: 1, // Vertical scale (for squash/stretch)
+  footstepCounter: 0 // For particle timing
+});
+
+const initialScreenState = () => ({
+  trauma: 0, // 0-1, camera shake intensity
+  flashIntensity: 0, // 0-1, screen flash intensity
+  flashColor: '#ffffff', // Color of screen flash
+  hitStopFrames: 0, // Frames to freeze gameplay
+  slowMotion: 1 // Time scale multiplier (1 = normal, <1 = slow)
 });
 
 const initialBoomerangState = () => ({
@@ -91,6 +118,7 @@ function Game() {
   const [particles, setParticles] = useState([]);
   const [powerups, setPowerups] = useState([]);
   const [boss, setBoss] = useState(initialBossState);
+  const [screenEffects, setScreenEffects] = useState(initialScreenState);
   const [cameraX, setCameraX] = useState(0);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
@@ -139,39 +167,91 @@ function Game() {
   // Main game loop
   const gameLoop = useCallback((deltaTime) => {
     if (gameState !== 'playing') return;
-    
+
     frameCountRef.current++;
-    const delta = deltaTime / 16.67; // Normalize to ~60fps
-    
+    let delta = deltaTime / 16.67; // Normalize to ~60fps
+
+    // Apply slow motion effect
+    delta *= screenEffects.slowMotion;
+
     // Update game time
     if (frameCountRef.current % 60 === 0) {
       setGameTime(t => t + 1);
     }
-    
+
+    // Skip game updates during hit stop (freeze frame effect)
+    // Screen effects will still update at the end of the loop
+    if (screenEffects.hitStopFrames > 0) {
+      // Only update screen effects during hit stop
+      setScreenEffects(prev => ({
+        ...prev,
+        hitStopFrames: prev.hitStopFrames - 1
+      }));
+      return;
+    }
+
     const keys = keysRef.current;
     const mouse = mousePos.current;
     const isMouseDown = mouseDown.current;
-    
+
     setPlayer(prevPlayer => {
       let newPlayer = { ...prevPlayer };
       newPlayer.animationFrame++;
       
-      // Horizontal movement
+      // Horizontal movement with acceleration/deceleration
       let moveX = 0;
       if (keys['a'] || keys['arrowleft']) moveX -= 1;
       if (keys['d'] || keys['arrowright']) moveX += 1;
 
       if (!newPlayer.isDashing) {
         const speedMultiplier = newPlayer.speedBoost > 0 ? 1.5 : 1;
-        newPlayer.velocityX = moveX * PLAYER_SPEED * speedMultiplier;
-        if (moveX !== 0) newPlayer.facingRight = moveX > 0;
+        const targetSpeed = moveX * PLAYER_SPEED * speedMultiplier;
+
+        // Acceleration/deceleration curves
+        if (moveX !== 0) {
+          // Accelerating
+          newPlayer.accelerationProgress = Math.min(1, newPlayer.accelerationProgress + 0.1);
+          newPlayer.decelerationProgress = 0;
+          newPlayer.facingRight = moveX > 0;
+        } else {
+          // Decelerating
+          newPlayer.decelerationProgress = Math.min(1, newPlayer.decelerationProgress + 0.125);
+          newPlayer.accelerationProgress = Math.max(0, newPlayer.accelerationProgress - 0.1);
+        }
+
+        // Easing functions
+        const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+        const speedFactor = moveX !== 0
+          ? easeOut(newPlayer.accelerationProgress)
+          : (1 - easeOut(newPlayer.decelerationProgress));
+
+        newPlayer.velocityX = targetSpeed * speedFactor;
+
+        // Body tilt based on velocity (lean into movement)
+        newPlayer.bodyTilt = (newPlayer.velocityX / PLAYER_SPEED) * 5;
       }
 
       // Decrease speed boost timer
       if (newPlayer.speedBoost > 0) {
         newPlayer.speedBoost--;
       }
-      
+
+      // Footstep particles when moving on ground
+      if (newPlayer.isGrounded && Math.abs(newPlayer.velocityX) > 2 && !newPlayer.isDashing) {
+        newPlayer.footstepCounter++;
+        if (newPlayer.footstepCounter >= 10) { // Emit footstep every 10 frames
+          newPlayer.footstepCounter = 0;
+          const footsteps = createFootstepParticles(
+            newPlayer.x + PLAYER_WIDTH / 2,
+            newPlayer.y + PLAYER_HEIGHT,
+            newPlayer.facingRight
+          );
+          setParticles(p => [...p, ...footsteps]);
+        }
+      } else {
+        newPlayer.footstepCounter = 0;
+      }
+
       // Dash
       if ((keys['shift'] || keys['shiftleft']) && newPlayer.dashCooldown <= 0 && !newPlayer.isDashing) {
         newPlayer.isDashing = true;
@@ -179,10 +259,25 @@ function Game() {
         newPlayer.velocityX = (newPlayer.facingRight ? 1 : -1) * DASH_SPEED;
         newPlayer.invincible = Math.max(newPlayer.invincible, DASH_DURATION);
         audioManager.playDash();
+        // Add dash burst particles
+        const burstParticles = createDashBurstParticles(
+          newPlayer.x + PLAYER_WIDTH / 2,
+          newPlayer.y + PLAYER_HEIGHT / 2,
+          newPlayer.facingRight
+        );
+        setParticles(p => [...p, ...burstParticles]);
       }
-      
+
       if (newPlayer.isDashing) {
         newPlayer.dashTimer--;
+        // Add dash trail particles every few frames
+        if (newPlayer.dashTimer % 2 === 0) {
+          const trailParticle = createDashTrailParticle(
+            newPlayer.x + PLAYER_WIDTH / 2,
+            newPlayer.y + PLAYER_HEIGHT / 2
+          );
+          setParticles(p => [...p, trailParticle]);
+        }
         if (newPlayer.dashTimer <= 0) {
           newPlayer.isDashing = false;
           newPlayer.dashCooldown = DASH_COOLDOWN;
@@ -192,35 +287,87 @@ function Game() {
       if (newPlayer.dashCooldown > 0) newPlayer.dashCooldown--;
       if (newPlayer.invincible > 0) newPlayer.invincible--;
       
+      // Update coyote timer
+      if (newPlayer.isGrounded) {
+        newPlayer.coyoteTimer = 6;
+      } else if (newPlayer.coyoteTimer > 0) {
+        newPlayer.coyoteTimer--;
+      }
+
+      // Update jump buffer timer
+      if (newPlayer.jumpBufferTimer > 0) {
+        newPlayer.jumpBufferTimer--;
+      }
+
       // Jump (Z key, W, Space, or ArrowUp)
       const jumpPressed = keys['z'] || keys[' '] || keys['w'] || keys['arrowup'];
+
+      // Buffer jump input
       if (jumpPressed && !keys['_jumpHeld']) {
         keys['_jumpHeld'] = true;
+        newPlayer.jumpBufferTimer = 8; // Queue jump for 8 frames
+      }
 
-        if (newPlayer.isGrounded) {
-          // First jump from ground
-          newPlayer.velocityY = -PLAYER_JUMP_FORCE;
-          newPlayer.isJumping = true;
-          newPlayer.isGrounded = false;
-          newPlayer.jumpsRemaining = newPlayer.jumpLevel - 1; // Used one jump
-          audioManager.playJump();
+      // Execute jump if buffered or just pressed
+      if (newPlayer.jumpBufferTimer > 0 && !newPlayer.isJumping) {
+        // Can jump if grounded OR within coyote time
+        if (newPlayer.isGrounded || newPlayer.coyoteTimer > 0) {
+          // Start anticipation crouch (ground jump only)
+          if (newPlayer.jumpAnticipation === 0) {
+            newPlayer.jumpAnticipation = 4; // 4 frames of anticipation
+            newPlayer.jumpBufferTimer = 0; // Consume buffer
+          }
         } else if (newPlayer.isWallSliding) {
-          // Wall jump
+          // Wall jump - instant, no anticipation
           newPlayer.velocityY = -WALL_JUMP_FORCE_Y;
           newPlayer.velocityX = -newPlayer.wallDirection * WALL_JUMP_FORCE_X;
           newPlayer.facingRight = newPlayer.wallDirection < 0;
           newPlayer.isWallSliding = false;
-          newPlayer.jumpsRemaining = newPlayer.jumpLevel; // Restore all jumps on wall jump
-          newPlayer.canDoubleJump = true; // Keep for compatibility
+          newPlayer.jumpsRemaining = newPlayer.jumpLevel;
+          newPlayer.canDoubleJump = true;
+          newPlayer.jumpBufferTimer = 0;
+          newPlayer.jumpHoldTime = 0;
           audioManager.playJump();
         } else if (newPlayer.jumpsRemaining > 0) {
-          // Multi-jump in air
+          // Multi-jump in air - instant, no anticipation
           newPlayer.velocityY = -PLAYER_JUMP_FORCE * 0.85;
           newPlayer.jumpsRemaining--;
+          newPlayer.jumpBufferTimer = 0;
+          newPlayer.jumpHoldTime = 0;
           audioManager.playJump();
         }
       }
-      
+
+      // Process jump anticipation
+      if (newPlayer.jumpAnticipation > 0) {
+        newPlayer.jumpAnticipation--;
+        if (newPlayer.jumpAnticipation === 0) {
+          // Execute the jump after anticipation
+          newPlayer.velocityY = -PLAYER_JUMP_FORCE * 1.05; // Slight boost for satisfying feel
+          newPlayer.isJumping = true;
+          newPlayer.isGrounded = false;
+          newPlayer.jumpsRemaining = newPlayer.jumpLevel - 1;
+          newPlayer.coyoteTimer = 0; // Consume coyote time
+          newPlayer.jumpHoldTime = 0; // Start tracking hold time
+          audioManager.playJump();
+          // Add jump particles
+          const jumpParticles = createJumpParticles(
+            newPlayer.x + PLAYER_WIDTH / 2,
+            newPlayer.y + PLAYER_HEIGHT,
+            newPlayer.facingRight
+          );
+          setParticles(p => [...p, ...jumpParticles]);
+        }
+      }
+
+      // Variable jump height: reduce upward velocity if jump released early
+      if (jumpPressed && newPlayer.isJumping && newPlayer.velocityY < 0) {
+        newPlayer.jumpHoldTime++;
+      } else if (!jumpPressed && newPlayer.isJumping && newPlayer.velocityY < 0 && newPlayer.jumpHoldTime < 10) {
+        // Released early - cut jump short
+        newPlayer.velocityY *= 0.5;
+      }
+
       if (!jumpPressed) {
         keys['_jumpHeld'] = false;
       }
@@ -239,7 +386,7 @@ function Game() {
         platforms.forEach(platform => {
           if (platform.type === 'wall') {
             // Check left side of player against right side of wall
-            if (newPlayer.x <= platform.x + platform.width && 
+            if (newPlayer.x <= platform.x + platform.width &&
                 newPlayer.x >= platform.x + platform.width - 5 &&
                 newPlayer.y + PLAYER_HEIGHT > platform.y &&
                 newPlayer.y < platform.y + platform.height) {
@@ -251,7 +398,7 @@ function Game() {
               }
             }
             // Check right side of player against left side of wall
-            if (newPlayer.x + PLAYER_WIDTH >= platform.x && 
+            if (newPlayer.x + PLAYER_WIDTH >= platform.x &&
                 newPlayer.x + PLAYER_WIDTH <= platform.x + 5 &&
                 newPlayer.y + PLAYER_HEIGHT > platform.y &&
                 newPlayer.y < platform.y + platform.height) {
@@ -264,6 +411,19 @@ function Game() {
             }
           }
         });
+      }
+
+      // Wall slide particles
+      if (newPlayer.isWallSliding && newPlayer.animationFrame % 3 === 0) {
+        const wallX = newPlayer.wallDirection === 1
+          ? newPlayer.x + PLAYER_WIDTH
+          : newPlayer.x;
+        const wallParticles = createFootstepParticles(
+          wallX,
+          newPlayer.y + PLAYER_HEIGHT / 2 + Math.random() * 20,
+          newPlayer.wallDirection === 1
+        );
+        setParticles(p => [...p, ...wallParticles]);
       }
       
       // Apply velocity
@@ -283,6 +443,12 @@ function Game() {
             newPlayer.invincible = INVINCIBILITY_FRAMES;
             newPlayer.velocityY = -10;
             audioManager.playPlayerHit();
+            setScreenEffects(se => ({
+              ...se,
+              trauma: Math.min(1, se.trauma + 0.4),
+              flashIntensity: 0.5,
+              flashColor: '#ff5500'
+            }));
           }
           return;
         }
@@ -328,8 +494,79 @@ function Game() {
         newPlayer.velocityY = 0;
         newPlayer.invincible = INVINCIBILITY_FRAMES;
         audioManager.playPlayerHit();
+        setScreenEffects(se => ({
+          ...se,
+          trauma: Math.min(1, se.trauma + 0.6),
+          flashIntensity: 0.7,
+          flashColor: '#ff0000'
+        }));
       }
-      
+
+      // Detect landing moment for squash animation
+      if (newPlayer.isGrounded && !newPlayer.wasGrounded) {
+        newPlayer.landingSquash = 1; // Start squash animation
+        // Add landing particles based on fall speed
+        const fallIntensity = Math.min(Math.abs(newPlayer.velocityY) / 15, 2);
+        const landParticles = createLandingParticles(
+          newPlayer.x + PLAYER_WIDTH / 2,
+          newPlayer.y + PLAYER_HEIGHT,
+          fallIntensity
+        );
+        setParticles(p => [...p, ...landParticles]);
+        // Add screen shake based on fall intensity
+        if (fallIntensity > 0.5) {
+          setScreenEffects(se => ({
+            ...se,
+            trauma: Math.min(1, se.trauma + fallIntensity * 0.15)
+          }));
+        }
+      }
+      newPlayer.wasGrounded = newPlayer.isGrounded;
+
+      // Decay landing squash over time
+      if (newPlayer.landingSquash > 0) {
+        newPlayer.landingSquash = Math.max(0, newPlayer.landingSquash - 0.08);
+      }
+
+      // Calculate squash/stretch based on state
+      // Jump anticipation crouch (highest priority for ground jumps)
+      if (newPlayer.jumpAnticipation > 0) {
+        const anticipationProgress = newPlayer.jumpAnticipation / 4; // 0-1 where 1 is start
+        const squashAmount = anticipationProgress * 0.25; // Deep crouch
+        newPlayer.scaleY = 1 - squashAmount;
+        newPlayer.scaleX = 1 + squashAmount * 0.5;
+      }
+      // Landing squash
+      else if (newPlayer.landingSquash > 0) {
+        const squashAmount = newPlayer.landingSquash * 0.2;
+        newPlayer.scaleY = 1 - squashAmount;
+        newPlayer.scaleX = 1 + squashAmount * 0.6;
+      }
+      // Dash stretch
+      else if (newPlayer.isDashing) {
+        newPlayer.scaleX = 1.25;
+        newPlayer.scaleY = 0.85;
+      }
+      // Falling stretch
+      else if (newPlayer.velocityY > 8) {
+        const fallStretch = Math.min((newPlayer.velocityY - 8) / 12, 0.15);
+        newPlayer.scaleY = 1 + fallStretch;
+        newPlayer.scaleX = 1 - fallStretch * 0.3;
+      }
+      // Return to normal
+      else {
+        newPlayer.scaleX = 1;
+        newPlayer.scaleY = 1;
+      }
+
+      // Update cape physics (spring system)
+      const targetCapeOffset = -newPlayer.velocityX * 2; // Cape streams opposite to movement
+      const capeSpring = 0.15;
+      const capeDamping = 0.85;
+      newPlayer.capeVelocity += (targetCapeOffset - newPlayer.capeOffset) * capeSpring;
+      newPlayer.capeVelocity *= capeDamping;
+      newPlayer.capeOffset += newPlayer.capeVelocity;
+
       return newPlayer;
     });
     
@@ -418,8 +655,13 @@ function Game() {
         
         newBoom.x += newBoom.velocityX * delta;
         newBoom.y += newBoom.velocityY * delta;
+
+        // Add boomerang trail particles
+        const trailColor = newBoom.charged ? '#ff5500' : '#ffaa00';
+        const trail = createBoomerangTrailParticle(newBoom.x, newBoom.y, trailColor);
+        setParticles(p => [...p, trail]);
       }
-      
+
       return newBoom;
     });
     
@@ -440,7 +682,7 @@ function Game() {
             const damage = boomerang.charged ? BOOMERANG_CHARGED_DAMAGE : BOOMERANG_DAMAGE;
             newEnemy.health -= damage;
             newEnemy.hitFlash = 10;
-            
+
             // Create hit particles
             const hitParticles = createHitParticles(
               newEnemy.x + newEnemy.width / 2,
@@ -448,11 +690,17 @@ function Game() {
               newEnemy.color
             );
             setParticles(p => [...p, ...hitParticles]);
-            
+
             audioManager.playHit();
-            
+
             if (newEnemy.health <= 0) {
               newEnemy.dead = true;
+              // Stronger hit stop for killing blow
+              setScreenEffects(se => ({
+                ...se,
+                hitStopFrames: boomerang.charged ? 6 : 4,
+                trauma: Math.min(1, se.trauma + 0.25)
+              }));
 
               // Death particles
               const deathParticles = createDeathParticles(
@@ -491,6 +739,13 @@ function Game() {
               }
 
               audioManager.playEnemyDeath();
+            } else {
+              // Light hit stop for normal hits
+              setScreenEffects(se => ({
+                ...se,
+                hitStopFrames: boomerang.charged ? 3 : 2,
+                trauma: Math.min(1, se.trauma + 0.1)
+              }));
             }
             
             // Boomerang bounces back on hit
@@ -526,6 +781,12 @@ function Game() {
               return updatedPlayer;
             });
             audioManager.playPlayerHit();
+            setScreenEffects(se => ({
+              ...se,
+              trauma: Math.min(1, se.trauma + 0.35),
+              flashIntensity: 0.4,
+              flashColor: '#ff3333'
+            }));
           }
         }
         
@@ -539,6 +800,7 @@ function Game() {
         let newBoss = { ...prevBoss };
         
         // Determine phase
+        const oldPhase = newBoss.phase;
         const healthPercent = newBoss.health / PHANTOM_KING.maxHealth;
         for (let i = PHANTOM_KING.phases.length - 1; i >= 0; i--) {
           if (healthPercent <= PHANTOM_KING.phases[i].threshold) {
@@ -546,7 +808,18 @@ function Game() {
           }
         }
         if (newBoss.phase === 0) newBoss.phase = 1;
-        
+
+        // Trigger slow motion on phase change
+        if (newBoss.phase !== oldPhase && newBoss.phase > 1) {
+          setScreenEffects(se => ({
+            ...se,
+            slowMotion: 0.3, // 30% speed
+            trauma: Math.min(1, se.trauma + 0.5),
+            flashIntensity: 0.8,
+            flashColor: '#ff00ff'
+          }));
+        }
+
         const phaseConfig = PHANTOM_KING.phases[Math.min(newBoss.phase - 1, 3)];
         
         // Update timers
@@ -679,6 +952,12 @@ function Game() {
                 velocityY: -8
               }));
               audioManager.playPlayerHit();
+              setScreenEffects(se => ({
+                ...se,
+                trauma: Math.min(1, se.trauma + 0.5),
+                flashIntensity: 0.6,
+                flashColor: '#9933ff'
+              }));
               newProj.life = 0;
             }
           }
@@ -695,13 +974,20 @@ function Game() {
             const damage = boomerang.charged ? BOOMERANG_CHARGED_DAMAGE : BOOMERANG_DAMAGE;
             newBoss.health -= damage;
             newBoss.hitFlash = 10;
-            
+
             setBoomerang(b => ({ ...b, returning: true }));
-            
+
             const hitParticles = createHitParticles(
               boomerang.x, boomerang.y, '#ff4444'
             );
             setParticles(p => [...p, ...hitParticles]);
+
+            // Boss hit stop (stronger effect)
+            setScreenEffects(se => ({
+              ...se,
+              hitStopFrames: boomerang.charged ? 8 : 5,
+              trauma: Math.min(1, se.trauma + 0.3)
+            }));
             
             audioManager.playBossHit();
             
@@ -750,14 +1036,29 @@ function Game() {
             switch (powerup.type) {
               case 'HEALTH':
                 updatedPlayer.health = Math.min(PLAYER_MAX_HEALTH, p.health + config.value);
+                setScreenEffects(se => ({
+                  ...se,
+                  flashIntensity: 0.3,
+                  flashColor: '#55ff55'
+                }));
                 break;
 
               case 'MAGIC':
                 updatedPlayer.magic = Math.min(100, p.magic + config.value);
+                setScreenEffects(se => ({
+                  ...se,
+                  flashIntensity: 0.3,
+                  flashColor: '#5555ff'
+                }));
                 break;
 
               case 'SPEED':
                 updatedPlayer.speedBoost = config.duration;
+                setScreenEffects(se => ({
+                  ...se,
+                  flashIntensity: 0.3,
+                  flashColor: '#ffff55'
+                }));
                 break;
 
               case 'JUMP':
@@ -766,6 +1067,11 @@ function Game() {
                   updatedPlayer.jumpLevel = p.jumpLevel + 1;
                   updatedPlayer.jumpsRemaining = updatedPlayer.jumpLevel;
                   updatedPlayer.jumpEffectIntensity = updatedPlayer.jumpLevel;
+                  setScreenEffects(se => ({
+                    ...se,
+                    flashIntensity: 0.3,
+                    flashColor: '#ffaa00'
+                  }));
                 }
                 break;
             }
@@ -788,10 +1094,32 @@ function Game() {
         const ambient = createAmbientParticles(currentZone, cameraX, 1);
         prevParticles = [...prevParticles, ...ambient];
       }
-      
+
       return prevParticles.filter(p => updateParticle(p));
     });
-    
+
+    // Update screen effects (except hit stop which is handled at loop start)
+    setScreenEffects(prev => {
+      const newEffects = { ...prev };
+
+      // Decay trauma (exponential falloff)
+      if (newEffects.trauma > 0) {
+        newEffects.trauma = Math.max(0, newEffects.trauma - 0.05);
+      }
+
+      // Decay flash
+      if (newEffects.flashIntensity > 0) {
+        newEffects.flashIntensity = Math.max(0, newEffects.flashIntensity - 0.1);
+      }
+
+      // Decay slow motion back to normal
+      if (newEffects.slowMotion < 1) {
+        newEffects.slowMotion = Math.min(1, newEffects.slowMotion + 0.02);
+      }
+
+      return newEffects;
+    });
+
     // Camera follow
     const targetCameraX = player.x - GAME_WIDTH / 3;
     setCameraX(prevCam => {
@@ -836,7 +1164,14 @@ function Game() {
   
   // Run game loop
   useGameLoop(gameLoop);
-  
+
+  // Calculate screen shake offset from trauma
+  const trauma = screenEffects.trauma;
+  const shake = trauma * trauma; // Square for smoother falloff
+  const maxOffset = 12;
+  const shakeX = (Math.random() * 2 - 1) * maxOffset * shake;
+  const shakeY = (Math.random() * 2 - 1) * maxOffset * shake;
+
   // Render
   if (gameState === 'title') {
     return (
@@ -869,8 +1204,8 @@ function Game() {
         </linearGradient>
       </defs>
       
-      {/* Game world container with camera transform */}
-      <g transform={`translate(${-cameraX}, 0)`}>
+      {/* Game world container with camera transform and shake */}
+      <g transform={`translate(${-cameraX + shakeX}, ${shakeY})`}>
         {/* Background */}
         <g transform={`translate(${cameraX}, 0)`}>
           <Background cameraX={cameraX} currentZone={currentZone} />
@@ -1036,15 +1371,28 @@ function Game() {
       {boomerang.isCharging && (
         <g transform={`translate(${player.x + PLAYER_WIDTH / 2 - cameraX}, ${player.y - 20})`}>
           <rect x={-25} y={0} width={50} height={6} fill="#333" rx={2} />
-          <rect 
-            x={-24} 
-            y={1} 
-            width={48 * boomerang.chargeLevel} 
-            height={4} 
-            fill={boomerang.chargeLevel >= 0.8 ? '#ffff00' : '#ffaa00'} 
+          <rect
+            x={-24}
+            y={1}
+            width={48 * boomerang.chargeLevel}
+            height={4}
+            fill={boomerang.chargeLevel >= 0.8 ? '#ffff00' : '#ffaa00'}
             rx={1}
           />
         </g>
+      )}
+
+      {/* Screen flash overlay */}
+      {screenEffects.flashIntensity > 0 && (
+        <rect
+          x={0}
+          y={0}
+          width={GAME_WIDTH}
+          height={GAME_HEIGHT}
+          fill={screenEffects.flashColor}
+          opacity={screenEffects.flashIntensity}
+          pointerEvents="none"
+        />
       )}
     </svg>
   );

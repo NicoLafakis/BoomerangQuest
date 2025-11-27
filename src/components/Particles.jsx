@@ -132,7 +132,19 @@ function Particle({ particle }) {
           opacity={opacity}
         />
       );
-    
+
+    case 'dust':
+      return (
+        <ellipse
+          cx={x}
+          cy={y}
+          rx={size}
+          ry={size * 0.6}
+          fill={color}
+          opacity={opacity}
+        />
+      );
+
     default:
       return (
         <circle
@@ -204,6 +216,125 @@ export function createScoreParticle(x, y, score, combo = 1) {
     type: 'score',
     text: `+${score}`,
     life: 60
+  };
+}
+
+export function createFootstepParticles(x, y, facingRight) {
+  const particles = [];
+  const count = 3 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < count; i++) {
+    const angle = Math.PI * 0.5 + (Math.random() - 0.5) * 0.8;
+    const speed = 0.5 + Math.random() * 1.5;
+    particles.push({
+      id: Date.now() + Math.random(),
+      x: x + (facingRight ? -5 : 5),
+      y: y,
+      vx: Math.cos(angle) * speed * (facingRight ? -1 : 1) * 0.5,
+      vy: -Math.sin(angle) * speed,
+      size: 2 + Math.random() * 3,
+      color: '#8a7a6a',
+      opacity: 0.6,
+      type: 'dust',
+      life: 20
+    });
+  }
+  return particles;
+}
+
+export function createJumpParticles(x, y, facingRight) {
+  const particles = [];
+  const count = 6 + Math.floor(Math.random() * 4);
+  for (let i = 0; i < count; i++) {
+    const angle = Math.PI * 0.3 + Math.random() * Math.PI * 0.4;
+    const speed = 2 + Math.random() * 3;
+    particles.push({
+      id: Date.now() + Math.random(),
+      x,
+      y,
+      vx: Math.cos(angle) * speed * (Math.random() > 0.5 ? 1 : -1),
+      vy: Math.abs(Math.sin(angle)) * speed,
+      size: 3 + Math.random() * 4,
+      color: '#9a8a7a',
+      opacity: 0.8,
+      type: 'dust',
+      life: 25
+    });
+  }
+  return particles;
+}
+
+export function createLandingParticles(x, y, intensity = 1) {
+  const particles = [];
+  const count = Math.floor(8 + intensity * 6);
+  for (let i = 0; i < count; i++) {
+    const angle = Math.PI * 0.2 + Math.random() * Math.PI * 0.6;
+    const speed = 2 + Math.random() * 4 * intensity;
+    const direction = i < count / 2 ? -1 : 1;
+    particles.push({
+      id: Date.now() + Math.random(),
+      x,
+      y,
+      vx: Math.cos(angle) * speed * direction,
+      vy: -Math.abs(Math.sin(angle)) * speed * 0.5,
+      size: 3 + Math.random() * 5,
+      color: '#aa9a8a',
+      opacity: 0.9,
+      type: 'dust',
+      life: 30
+    });
+  }
+  return particles;
+}
+
+export function createDashBurstParticles(x, y, facingRight) {
+  const particles = [];
+  const count = 12;
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const speed = 3 + Math.random() * 5;
+    particles.push({
+      id: Date.now() + Math.random(),
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: 4 + Math.random() * 6,
+      color: '#9a7aff',
+      opacity: 1,
+      type: 'spark',
+      life: 20
+    });
+  }
+  return particles;
+}
+
+export function createDashTrailParticle(x, y) {
+  return {
+    id: Date.now() + Math.random(),
+    x: x + (Math.random() - 0.5) * 20,
+    y: y + (Math.random() - 0.5) * 30,
+    vx: 0,
+    vy: 0,
+    size: 3 + Math.random() * 4,
+    color: '#7a5aff',
+    opacity: 0.7,
+    type: 'trail',
+    life: 15
+  };
+}
+
+export function createBoomerangTrailParticle(x, y, color = '#ffaa00') {
+  return {
+    id: Date.now() + Math.random(),
+    x: x + (Math.random() - 0.5) * 8,
+    y: y + (Math.random() - 0.5) * 8,
+    vx: 0,
+    vy: 0,
+    size: 2 + Math.random() * 3,
+    color,
+    opacity: 0.8,
+    type: 'trail',
+    life: 12
   };
 }
 
