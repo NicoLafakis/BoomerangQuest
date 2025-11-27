@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(timeout:*)",
+      "Bash(exit 0)",
+      "Bash(if [ -f nul ])",
+      "Bash(then cat nul)",
+      "Bash(else echo \"File doesn''t exist\")",
+      "Bash(fi)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
