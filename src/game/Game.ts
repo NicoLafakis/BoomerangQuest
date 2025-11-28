@@ -5,6 +5,7 @@ import { SceneManager } from './scenes/SceneManager'
 import { TitleScene } from './scenes/TitleScene'
 import { GameScene } from './scenes/GameScene'
 import { GameOverScene } from './scenes/GameOverScene'
+import { AssetLoader } from './utils/AssetLoader'
 
 export const GAME_WIDTH = 1280
 export const GAME_HEIGHT = 720
@@ -13,6 +14,7 @@ export class Game {
   public app: PIXI.Application
   public input: InputManager
   public sceneManager: SceneManager
+  public assetLoader: AssetLoader
   private gameLoop: GameLoop
   private container: HTMLElement
 
@@ -39,6 +41,7 @@ export class Game {
     this.input = new InputManager(this.app.view as HTMLCanvasElement)
     this.sceneManager = new SceneManager(this)
     this.gameLoop = new GameLoop(this)
+    this.assetLoader = AssetLoader.getInstance()
 
     // Register scenes
     this.sceneManager.register('title', () => new TitleScene(this))
@@ -65,7 +68,10 @@ export class Game {
     canvas.style.imageRendering = 'pixelated'
   }
 
-  start(): void {
+  async start(): Promise<void> {
+    // Load assets (will use placeholders if not available)
+    await this.assetLoader.loadAll()
+
     this.sceneManager.switchTo('title')
     this.gameLoop.start()
   }
