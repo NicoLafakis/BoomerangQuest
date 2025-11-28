@@ -784,7 +784,15 @@ export class SpriteGenerator {
 
   /**
    * Generate boss sprite based on boss type
-   * Bosses are larger (80x80 or bigger) and more detailed
+   * Bosses are larger and more detailed than regular enemies
+   *
+   * Boss types and their names:
+   * - irs_commissioner: "Harold Pemberton" (80x80)
+   * - senator / senator_navy: "Senator Richard Thornwood" (64x64)
+   * - senator_charcoal: "Senator James Caldwell" (64x64)
+   * - speaker: "Speaker Margaret Morrison" (72x72)
+   * - vice_president: "Vice President Thomas Hartley" (64x64)
+   * - president: "President William J. Maxwell" (80x80)
    */
   static generateBossSprite(type: string): PIXI.Texture {
     const key = `boss_${type}`
@@ -798,7 +806,11 @@ export class SpriteGenerator {
         this.drawIRSCommissioner(canvas, ctx)
         break
       case 'senator':
-        this.drawSenator(canvas, ctx)
+      case 'senator_navy':
+        this.drawSenator(canvas, ctx, 'navy')
+        break
+      case 'senator_charcoal':
+        this.drawSenator(canvas, ctx, 'charcoal')
         break
       case 'speaker':
         this.drawSpeaker(canvas, ctx)
@@ -826,467 +838,590 @@ export class SpriteGenerator {
   }
 
   /**
-   * IRS Commissioner - Large bureaucrat with power tie and intimidating presence
-   * The ultimate tax collector
+   * IRS Commissioner - "Harold Pemberton"
+   * Large, heavy-set man with rolled sleeves, loose tie, sweating profusely
+   * Red-faced from stress, intimidating presence - The ultimate tax collector
    */
   private static drawIRSCommissioner(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
     canvas.width = 80
-    canvas.height = 96
-    ctx.clearRect(0, 0, 80, 96)
+    canvas.height = 80
+    ctx.clearRect(0, 0, 80, 80)
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.4)'
     ctx.beginPath()
-    ctx.ellipse(40, 90, 24, 6, 0, 0, Math.PI * 2)
+    ctx.ellipse(40, 76, 22, 5, 0, 0, Math.PI * 2)
     ctx.fill()
 
-    // Legs
+    // Legs - heavy set
     ctx.fillStyle = '#1A1A1A'
-    ctx.fillRect(22, 60, 14, 28)
-    ctx.fillRect(44, 60, 14, 28)
+    ctx.fillRect(22, 52, 14, 24)
+    ctx.fillRect(44, 52, 14, 24)
 
     // Shoes
     ctx.fillStyle = '#0A0A0A'
-    ctx.fillRect(18, 84, 18, 8)
-    ctx.fillRect(44, 84, 18, 8)
+    ctx.fillRect(20, 72, 16, 6)
+    ctx.fillRect(44, 72, 16, 6)
 
-    // Body - Dark imposing suit
-    ctx.fillStyle = '#1A1A2A'
-    ctx.fillRect(14, 28, 52, 36)
+    // Body - White dress shirt (no jacket, sleeves rolled)
+    ctx.fillStyle = '#F0F0F0'
+    ctx.fillRect(14, 24, 52, 32)
 
-    // Suit details - pinstripes
-    ctx.fillStyle = '#2A2A3A'
-    for (let i = 0; i < 5; i++) {
-      ctx.fillRect(18 + i * 10, 28, 2, 36)
-    }
+    // Rolled up sleeves - exposed forearms
+    ctx.fillStyle = '#FFAA88' // Reddish skin tone (stressed)
+    ctx.fillRect(8, 32, 8, 16)
+    ctx.fillRect(64, 32, 8, 16)
 
-    // White shirt visible
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(30, 28, 20, 20)
+    // Shirt wrinkles/details
+    ctx.fillStyle = '#DDDDDD'
+    ctx.fillRect(20, 28, 2, 24)
+    ctx.fillRect(58, 28, 2, 24)
 
-    // Power tie - IRS red
+    // Loose tie - askew and disheveled
     ctx.fillStyle = '#CC0000'
-    ctx.fillRect(36, 28, 8, 28)
-    ctx.fillStyle = '#990000'
-    ctx.fillRect(36, 40, 8, 4) // Tie stripe
-
-    // Arms
-    ctx.fillStyle = '#1A1A2A'
-    ctx.fillRect(4, 32, 12, 24)
-    ctx.fillRect(64, 32, 12, 24)
-
-    // Hands with gavel
-    ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(4, 52, 10, 8)
-    ctx.fillRect(66, 52, 10, 8)
-
-    // Gavel (right hand)
-    ctx.fillStyle = '#5C3317'
-    ctx.fillRect(70, 40, 8, 20)
-    ctx.fillStyle = '#8B4513'
-    ctx.fillRect(68, 36, 12, 8)
-
-    // Stack of papers (left hand)
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(0, 44, 14, 16)
-    ctx.fillStyle = '#AAAAAA'
-    for (let i = 0; i < 5; i++) {
-      ctx.fillRect(1, 46 + i * 3, 12, 1)
-    }
-
-    // Head - larger and more imposing
-    ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(22, 2, 36, 28)
-
-    // Gray/white hair - slicked back, balding
-    ctx.fillStyle = '#888888'
-    ctx.fillRect(22, 0, 36, 6)
-    ctx.fillRect(18, 4, 8, 12)
-    ctx.fillRect(54, 4, 8, 12)
-
-    // Glasses - intimidating
-    ctx.fillStyle = '#222222'
-    ctx.fillRect(24, 10, 12, 8)
-    ctx.fillRect(44, 10, 12, 8)
-    ctx.fillRect(36, 12, 8, 4)
-    // Lens glare
-    ctx.fillStyle = '#4466AA'
-    ctx.fillRect(26, 12, 8, 4)
-    ctx.fillRect(46, 12, 8, 4)
-
-    // Stern frown
-    ctx.fillStyle = '#CC8866'
-    ctx.fillRect(32, 22, 16, 3)
-
-    // Eyebrows - angry
-    ctx.fillStyle = '#666666'
-    ctx.fillRect(24, 8, 10, 2)
-    ctx.fillRect(46, 8, 10, 2)
-
-    // Badge/pin on lapel
-    ctx.fillStyle = '#FFD700'
     ctx.beginPath()
-    ctx.arc(22, 36, 4, 0, Math.PI * 2)
+    ctx.moveTo(38, 24)
+    ctx.lineTo(44, 24)
+    ctx.lineTo(46, 54)
+    ctx.lineTo(40, 56)
+    ctx.lineTo(36, 54)
+    ctx.closePath()
     ctx.fill()
-    ctx.fillStyle = '#0000AA'
-    ctx.fillRect(20, 34, 4, 4)
+    // Tie knot - loose
+    ctx.fillStyle = '#990000'
+    ctx.fillRect(37, 22, 8, 6)
+
+    // Suspenders
+    ctx.fillStyle = '#333333'
+    ctx.fillRect(24, 24, 4, 28)
+    ctx.fillRect(52, 24, 4, 28)
+
+    // Hands - meaty
+    ctx.fillStyle = '#FFAA88'
+    ctx.fillRect(6, 44, 10, 8)
+    ctx.fillRect(64, 44, 10, 8)
+
+    // Clipboard (right hand)
+    ctx.fillStyle = '#8B4513'
+    ctx.fillRect(68, 38, 10, 14)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(69, 40, 8, 10)
+    ctx.fillStyle = '#AA0000'
+    ctx.fillRect(70, 42, 6, 1)
+    ctx.fillRect(70, 44, 6, 1)
+    ctx.fillRect(70, 46, 6, 1)
+
+    // Head - red/flushed face (stressed)
+    ctx.fillStyle = '#FFAA88'
+    ctx.fillRect(24, 2, 32, 24)
+
+    // Bald top with side hair
+    ctx.fillStyle = '#666666'
+    ctx.fillRect(22, 8, 6, 10)
+    ctx.fillRect(52, 8, 6, 10)
+
+    // Furrowed brow
+    ctx.fillStyle = '#FF9977'
+    ctx.fillRect(28, 6, 24, 4)
+
+    // Glasses - stern
+    ctx.fillStyle = '#222222'
+    ctx.fillRect(26, 10, 10, 6)
+    ctx.fillRect(44, 10, 10, 6)
+    ctx.fillRect(36, 12, 8, 2)
+    ctx.fillStyle = '#4466AA'
+    ctx.fillRect(27, 11, 8, 4)
+    ctx.fillRect(45, 11, 8, 4)
+
+    // Angry eyebrows
+    ctx.fillStyle = '#444444'
+    ctx.beginPath()
+    ctx.moveTo(26, 10)
+    ctx.lineTo(36, 8)
+    ctx.lineTo(36, 9)
+    ctx.lineTo(26, 11)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(54, 10)
+    ctx.lineTo(44, 8)
+    ctx.lineTo(44, 9)
+    ctx.lineTo(54, 11)
+    ctx.fill()
+
+    // Frown
+    ctx.fillStyle = '#CC7766'
+    ctx.fillRect(34, 20, 12, 3)
+
+    // Sweat drops
+    ctx.fillStyle = '#88CCFF'
+    ctx.beginPath()
+    ctx.ellipse(22, 12, 2, 3, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.ellipse(58, 14, 2, 3, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.ellipse(20, 20, 2, 2, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Double chin
+    ctx.fillStyle = '#FF9988'
+    ctx.fillRect(32, 24, 16, 4)
 
     // Outline
     ctx.strokeStyle = '#111111'
     ctx.lineWidth = 2
-    ctx.strokeRect(14, 28, 52, 36)
+    ctx.strokeRect(14, 24, 52, 32)
   }
 
   /**
-   * Senator - Slick politician with American flag pin
+   * Senator - "Senator Richard Thornwood" (navy) / "Senator James Caldwell" (charcoal)
+   * Slick politician with American flag pin, expensive suit, confident stance
    */
-  private static drawSenator(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
-    canvas.width = 72
-    canvas.height = 88
-    ctx.clearRect(0, 0, 72, 88)
+  private static drawSenator(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, variant: 'navy' | 'charcoal' = 'navy'): void {
+    canvas.width = 64
+    canvas.height = 64
+    ctx.clearRect(0, 0, 64, 64)
+
+    // Color variants
+    const suitColor = variant === 'navy' ? '#1A2A4A' : '#3A3A3A'
+    const suitLight = variant === 'navy' ? '#2A3A5A' : '#4A4A4A'
+    const tieColor = variant === 'navy' ? '#CC2222' : '#1A4A8A'
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.4)'
     ctx.beginPath()
-    ctx.ellipse(36, 84, 20, 5, 0, 0, Math.PI * 2)
+    ctx.ellipse(32, 61, 16, 4, 0, 0, Math.PI * 2)
     ctx.fill()
 
     // Legs
-    ctx.fillStyle = '#2A2A3A'
-    ctx.fillRect(20, 54, 12, 26)
-    ctx.fillRect(40, 54, 12, 26)
+    ctx.fillStyle = suitColor
+    ctx.fillRect(18, 42, 10, 18)
+    ctx.fillRect(36, 42, 10, 18)
 
-    // Shoes
+    // Shoes - expensive
     ctx.fillStyle = '#1A1A1A'
-    ctx.fillRect(17, 78, 15, 6)
-    ctx.fillRect(40, 78, 15, 6)
+    ctx.fillRect(16, 58, 12, 5)
+    ctx.fillRect(36, 58, 12, 5)
 
-    // Navy suit body
-    ctx.fillStyle = '#1A2A4A'
-    ctx.fillRect(12, 24, 48, 34)
+    // Expensive suit body
+    ctx.fillStyle = suitColor
+    ctx.fillRect(12, 20, 40, 26)
+
+    // Suit lapels
+    ctx.fillStyle = suitLight
+    ctx.beginPath()
+    ctx.moveTo(12, 20)
+    ctx.lineTo(24, 20)
+    ctx.lineTo(28, 36)
+    ctx.lineTo(12, 36)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(52, 20)
+    ctx.lineTo(40, 20)
+    ctx.lineTo(36, 36)
+    ctx.lineTo(52, 36)
+    ctx.fill()
 
     // White shirt
     ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(28, 24, 16, 18)
+    ctx.fillRect(26, 20, 12, 14)
 
-    // Red tie
-    ctx.fillStyle = '#CC2222'
-    ctx.fillRect(33, 24, 6, 26)
+    // Tie
+    ctx.fillStyle = tieColor
+    ctx.fillRect(30, 20, 4, 20)
 
-    // Arms
-    ctx.fillStyle = '#1A2A4A'
-    ctx.fillRect(4, 28, 10, 22)
-    ctx.fillRect(58, 28, 10, 22)
+    // Arms - confident pose
+    ctx.fillStyle = suitColor
+    ctx.fillRect(4, 22, 10, 18)
+    ctx.fillRect(50, 22, 10, 18)
 
-    // Hands - waving
+    // Pointing hand (right)
     ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(58, 20, 10, 10)
-    ctx.fillRect(4, 46, 8, 6)
+    ctx.fillRect(54, 18, 8, 6)
+    ctx.fillRect(60, 20, 4, 2) // Pointing finger
+
+    // Hand with papers (left)
+    ctx.fillStyle = '#FFCC99'
+    ctx.fillRect(2, 36, 8, 6)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 30, 8, 10)
+    ctx.fillStyle = '#AAAAAA'
+    ctx.fillRect(1, 32, 6, 1)
+    ctx.fillRect(1, 35, 6, 1)
 
     // Head
     ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(20, 2, 32, 24)
+    ctx.fillRect(20, 2, 24, 20)
 
-    // Gray distinguished hair
-    ctx.fillStyle = '#777777'
-    ctx.fillRect(18, 0, 36, 6)
-    ctx.fillRect(16, 2, 6, 10)
-    ctx.fillRect(50, 2, 6, 10)
+    // Distinguished gray/white hair
+    ctx.fillStyle = '#888888'
+    ctx.fillRect(18, 0, 28, 5)
+    ctx.fillRect(16, 2, 6, 8)
+    ctx.fillRect(42, 2, 6, 8)
 
-    // Eyes
+    // Eyes - confident
     ctx.fillStyle = '#333333'
-    ctx.fillRect(26, 10, 4, 3)
-    ctx.fillRect(42, 10, 4, 3)
+    ctx.fillRect(24, 9, 3, 2)
+    ctx.fillRect(37, 9, 3, 2)
 
-    // Politician smile
+    // Politician smile - big white teeth
     ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(30, 18, 12, 4)
+    ctx.fillRect(28, 15, 8, 3)
     ctx.strokeStyle = '#CC8866'
-    ctx.strokeRect(30, 18, 12, 4)
+    ctx.lineWidth = 1
+    ctx.strokeRect(28, 15, 8, 3)
 
-    // American flag pin
+    // American flag pin on lapel
     ctx.fillStyle = '#CC0000'
-    ctx.fillRect(16, 30, 6, 2)
+    ctx.fillRect(14, 24, 5, 2)
     ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(16, 32, 6, 2)
+    ctx.fillRect(14, 26, 5, 1)
+    ctx.fillStyle = '#CC0000'
+    ctx.fillRect(14, 27, 5, 1)
     ctx.fillStyle = '#0000AA'
-    ctx.fillRect(16, 30, 3, 4)
+    ctx.fillRect(14, 24, 2, 4)
+    // Stars (tiny dots)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(14, 24, 1, 1)
+    ctx.fillRect(15, 25, 1, 1)
 
     // Outline
     ctx.strokeStyle = '#111122'
-    ctx.strokeRect(12, 24, 48, 34)
+    ctx.lineWidth = 1
+    ctx.strokeRect(12, 20, 40, 26)
   }
 
   /**
-   * Speaker of the House - Behind podium, with gavel
+   * Speaker of the House - "Speaker Margaret Morrison"
+   * Standing at podium with gavel raised, formal attire, commanding presence
    */
   private static drawSpeaker(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
-    canvas.width = 88
-    canvas.height = 96
-    ctx.clearRect(0, 0, 88, 96)
+    canvas.width = 72
+    canvas.height = 72
+    ctx.clearRect(0, 0, 72, 72)
 
     // Podium
     ctx.fillStyle = '#5C3317'
-    ctx.fillRect(14, 48, 60, 44)
+    ctx.fillRect(12, 38, 48, 32)
     ctx.fillStyle = '#8B4513'
-    ctx.fillRect(18, 52, 52, 36)
-    // Podium seal
+    ctx.fillRect(15, 41, 42, 26)
+    // Podium seal - House of Representatives
     ctx.fillStyle = '#FFD700'
     ctx.beginPath()
-    ctx.arc(44, 70, 12, 0, Math.PI * 2)
+    ctx.arc(36, 54, 10, 0, Math.PI * 2)
     ctx.fill()
     ctx.fillStyle = '#0000AA'
     ctx.beginPath()
-    ctx.arc(44, 70, 8, 0, Math.PI * 2)
+    ctx.arc(36, 54, 7, 0, Math.PI * 2)
     ctx.fill()
+    // Eagle silhouette
+    ctx.fillStyle = '#FFD700'
+    ctx.fillRect(33, 52, 6, 2)
+    ctx.fillRect(35, 50, 2, 6)
 
     // Body behind podium
     ctx.fillStyle = '#2A3A5A'
-    ctx.fillRect(26, 28, 36, 24)
+    ctx.fillRect(22, 20, 28, 22)
 
-    // White shirt
+    // White shirt/blouse
     ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(36, 28, 16, 14)
+    ctx.fillRect(30, 20, 12, 12)
 
-    // Blue tie
-    ctx.fillStyle = '#2244AA'
-    ctx.fillRect(42, 28, 4, 18)
+    // Formal tie/accessory
+    ctx.fillStyle = '#8B0000'
+    ctx.fillRect(34, 20, 4, 16)
 
     // Arms on podium
     ctx.fillStyle = '#2A3A5A'
-    ctx.fillRect(16, 40, 14, 12)
-    ctx.fillRect(58, 40, 14, 12)
+    ctx.fillRect(12, 30, 12, 10)
+    ctx.fillRect(48, 30, 12, 10)
 
     // Hands
     ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(16, 46, 12, 6)
-    ctx.fillRect(60, 46, 12, 6)
+    ctx.fillRect(12, 36, 10, 5)
+    ctx.fillRect(50, 36, 10, 5)
 
-    // Gavel in right hand
+    // Gavel raised in right hand
     ctx.fillStyle = '#5C3317'
-    ctx.fillRect(68, 36, 6, 16)
+    ctx.fillRect(58, 20, 5, 18)
     ctx.fillStyle = '#8B4513'
-    ctx.fillRect(66, 32, 10, 6)
+    ctx.fillRect(55, 16, 11, 6)
+    // Gavel head highlight
+    ctx.fillStyle = '#A0522D'
+    ctx.fillRect(56, 17, 9, 4)
 
     // Head
     ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(30, 2, 28, 26)
+    ctx.fillRect(24, 2, 24, 20)
 
-    // Hair
+    // Hair - styled
     ctx.fillStyle = '#4A3A2A'
-    ctx.fillRect(28, 0, 32, 6)
-    ctx.fillRect(26, 2, 6, 8)
-    ctx.fillRect(56, 2, 6, 8)
+    ctx.fillRect(22, 0, 28, 5)
+    ctx.fillRect(20, 2, 6, 10)
+    ctx.fillRect(46, 2, 6, 10)
+    // Hair wave detail
+    ctx.fillStyle = '#5A4A3A'
+    ctx.fillRect(24, 1, 8, 3)
+    ctx.fillRect(40, 1, 8, 3)
 
     // Glasses
     ctx.fillStyle = '#333333'
-    ctx.fillRect(32, 10, 10, 6)
-    ctx.fillRect(46, 10, 10, 6)
-    ctx.fillRect(42, 12, 4, 2)
+    ctx.fillRect(26, 8, 8, 5)
+    ctx.fillRect(38, 8, 8, 5)
+    ctx.fillRect(34, 9, 4, 2)
     ctx.fillStyle = '#88AACC'
-    ctx.fillRect(33, 11, 8, 4)
-    ctx.fillRect(47, 11, 8, 4)
+    ctx.fillRect(27, 9, 6, 3)
+    ctx.fillRect(39, 9, 6, 3)
 
-    // Stern expression
+    // Stern/authoritative expression
     ctx.fillStyle = '#CC8866'
-    ctx.fillRect(38, 20, 12, 2)
+    ctx.fillRect(32, 16, 8, 2)
 
     // Outline
     ctx.strokeStyle = '#222222'
     ctx.lineWidth = 2
-    ctx.strokeRect(14, 48, 60, 44)
+    ctx.strokeRect(12, 38, 48, 32)
   }
 
   /**
-   * Vice President - Formal, with seal
+   * Vice President - "Vice President Thomas Hartley"
+   * Professional suit, standing pose with subtle authority symbols
    */
   private static drawVicePresident(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
-    canvas.width = 80
-    canvas.height = 96
-    ctx.clearRect(0, 0, 80, 96)
+    canvas.width = 64
+    canvas.height = 64
+    ctx.clearRect(0, 0, 64, 64)
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.4)'
     ctx.beginPath()
-    ctx.ellipse(40, 90, 22, 6, 0, 0, Math.PI * 2)
+    ctx.ellipse(32, 61, 16, 4, 0, 0, Math.PI * 2)
     ctx.fill()
 
     // Legs
     ctx.fillStyle = '#1A1A2A'
-    ctx.fillRect(24, 58, 12, 28)
-    ctx.fillRect(44, 58, 12, 28)
+    ctx.fillRect(18, 42, 10, 18)
+    ctx.fillRect(36, 42, 10, 18)
 
     // Shoes
     ctx.fillStyle = '#0A0A0A'
-    ctx.fillRect(22, 84, 14, 6)
-    ctx.fillRect(44, 84, 14, 6)
+    ctx.fillRect(16, 58, 12, 5)
+    ctx.fillRect(36, 58, 12, 5)
 
     // Dark formal suit
     ctx.fillStyle = '#1A1A2A'
-    ctx.fillRect(16, 28, 48, 34)
+    ctx.fillRect(12, 20, 40, 26)
+
+    // Suit lapels
+    ctx.fillStyle = '#252535'
+    ctx.beginPath()
+    ctx.moveTo(12, 20)
+    ctx.lineTo(22, 20)
+    ctx.lineTo(26, 34)
+    ctx.lineTo(12, 34)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(52, 20)
+    ctx.lineTo(42, 20)
+    ctx.lineTo(38, 34)
+    ctx.lineTo(52, 34)
+    ctx.fill()
 
     // White shirt
     ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(32, 28, 16, 18)
+    ctx.fillRect(26, 20, 12, 14)
 
     // Blue tie
     ctx.fillStyle = '#1A3A6A'
-    ctx.fillRect(37, 28, 6, 26)
+    ctx.fillRect(30, 20, 4, 20)
 
-    // Arms
+    // Arms - professional stance
     ctx.fillStyle = '#1A1A2A'
-    ctx.fillRect(6, 32, 12, 22)
-    ctx.fillRect(62, 32, 12, 22)
+    ctx.fillRect(4, 22, 10, 18)
+    ctx.fillRect(50, 22, 10, 18)
 
     // Hands
     ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(6, 50, 10, 6)
-    ctx.fillRect(64, 50, 10, 6)
+    ctx.fillRect(4, 36, 8, 6)
+    ctx.fillRect(52, 36, 8, 6)
 
     // Head
     ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(24, 2, 32, 26)
+    ctx.fillRect(20, 2, 24, 20)
 
-    // White/gray hair
-    ctx.fillStyle = '#AAAAAA'
-    ctx.fillRect(22, 0, 36, 6)
-    ctx.fillRect(20, 2, 6, 10)
-    ctx.fillRect(54, 2, 6, 10)
+    // White/silver hair - distinguished
+    ctx.fillStyle = '#CCCCCC'
+    ctx.fillRect(18, 0, 28, 5)
+    ctx.fillRect(16, 2, 6, 8)
+    ctx.fillRect(42, 2, 6, 8)
 
     // Eyes
     ctx.fillStyle = '#333333'
-    ctx.fillRect(30, 10, 4, 3)
-    ctx.fillRect(46, 10, 4, 3)
+    ctx.fillRect(24, 9, 3, 2)
+    ctx.fillRect(37, 9, 3, 2)
 
     // Confident smile
     ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(34, 20, 12, 3)
+    ctx.fillRect(28, 16, 8, 3)
+    ctx.strokeStyle = '#CC8866'
+    ctx.lineWidth = 1
+    ctx.strokeRect(28, 16, 8, 3)
 
-    // VP seal pin
+    // VP seal pin on lapel
     ctx.fillStyle = '#FFD700'
     ctx.beginPath()
-    ctx.arc(22, 36, 5, 0, Math.PI * 2)
+    ctx.arc(16, 26, 4, 0, Math.PI * 2)
     ctx.fill()
     ctx.fillStyle = '#0000AA'
-    ctx.fillRect(19, 33, 6, 6)
+    ctx.beginPath()
+    ctx.arc(16, 26, 2, 0, Math.PI * 2)
+    ctx.fill()
+    // Eagle detail
+    ctx.fillStyle = '#FFD700'
+    ctx.fillRect(14, 26, 4, 1)
 
     // Outline
     ctx.strokeStyle = '#111111'
-    ctx.lineWidth = 2
-    ctx.strokeRect(16, 28, 48, 34)
+    ctx.lineWidth = 1
+    ctx.strokeRect(12, 20, 40, 26)
   }
 
   /**
-   * President - The final boss, largest and most imposing
+   * President - "President William J. Maxwell"
+   * The final boss - dark suit, red tie, gray hair, most imposing of all
+   * Behind podium with American flags, presidential seal
    */
   private static drawPresident(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
-    canvas.width = 96
-    canvas.height = 112
-    ctx.clearRect(0, 0, 96, 112)
+    canvas.width = 80
+    canvas.height = 80
+    ctx.clearRect(0, 0, 80, 80)
+
+    // American flags on sides (behind everything)
+    // Left flag
+    ctx.fillStyle = '#8B4513'
+    ctx.fillRect(2, 4, 3, 40)
+    ctx.fillStyle = '#CC0000'
+    ctx.fillRect(5, 4, 10, 2)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(5, 6, 10, 2)
+    ctx.fillStyle = '#CC0000'
+    ctx.fillRect(5, 8, 10, 2)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(5, 10, 10, 2)
+    ctx.fillStyle = '#0000AA'
+    ctx.fillRect(5, 4, 4, 8)
+    // Right flag
+    ctx.fillStyle = '#8B4513'
+    ctx.fillRect(75, 4, 3, 40)
+    ctx.fillStyle = '#CC0000'
+    ctx.fillRect(65, 4, 10, 2)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(65, 6, 10, 2)
+    ctx.fillStyle = '#CC0000'
+    ctx.fillRect(65, 8, 10, 2)
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(65, 10, 10, 2)
+    ctx.fillStyle = '#0000AA'
+    ctx.fillRect(71, 4, 4, 8)
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.5)'
     ctx.beginPath()
-    ctx.ellipse(48, 106, 28, 8, 0, 0, Math.PI * 2)
+    ctx.ellipse(40, 77, 20, 5, 0, 0, Math.PI * 2)
     ctx.fill()
 
     // Legs
     ctx.fillStyle = '#1A1A1A'
-    ctx.fillRect(28, 68, 16, 36)
-    ctx.fillRect(52, 68, 16, 36)
+    ctx.fillRect(24, 52, 12, 24)
+    ctx.fillRect(44, 52, 12, 24)
 
     // Shoes
     ctx.fillStyle = '#0A0A0A'
-    ctx.fillRect(25, 100, 20, 8)
-    ctx.fillRect(51, 100, 20, 8)
+    ctx.fillRect(22, 74, 14, 5)
+    ctx.fillRect(44, 74, 14, 5)
 
-    // Presidential suit - slightly lighter, more distinguished
+    // Presidential suit - dark and distinguished
+    ctx.fillStyle = '#1A1A2A'
+    ctx.fillRect(16, 24, 48, 32)
+
+    // Suit lapels - subtle gold trim
     ctx.fillStyle = '#2A2A3A'
-    ctx.fillRect(16, 32, 64, 42)
-
-    // Gold trim details
-    ctx.fillStyle = '#FFD700'
-    ctx.fillRect(16, 32, 2, 42)
-    ctx.fillRect(78, 32, 2, 42)
+    ctx.beginPath()
+    ctx.moveTo(16, 24)
+    ctx.lineTo(28, 24)
+    ctx.lineTo(34, 44)
+    ctx.lineTo(16, 44)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(64, 24)
+    ctx.lineTo(52, 24)
+    ctx.lineTo(46, 44)
+    ctx.lineTo(64, 44)
+    ctx.fill()
 
     // White shirt
     ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(38, 32, 20, 22)
+    ctx.fillRect(32, 24, 16, 18)
 
     // Red power tie
     ctx.fillStyle = '#AA0000'
-    ctx.fillRect(44, 32, 8, 32)
+    ctx.fillRect(37, 24, 6, 26)
     ctx.fillStyle = '#880000'
-    ctx.fillRect(44, 48, 8, 4) // Tie pattern
+    ctx.fillRect(37, 36, 6, 3) // Tie stripe
 
     // Arms - commanding pose
-    ctx.fillStyle = '#2A2A3A'
-    ctx.fillRect(4, 36, 14, 28)
-    ctx.fillRect(78, 36, 14, 28)
+    ctx.fillStyle = '#1A1A2A'
+    ctx.fillRect(6, 28, 12, 22)
+    ctx.fillRect(62, 28, 12, 22)
 
     // Hands
     ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(4, 58, 12, 8)
-    ctx.fillRect(80, 58, 12, 8)
+    ctx.fillRect(6, 46, 10, 6)
+    ctx.fillRect(64, 46, 10, 6)
 
-    // Constitution in left hand
-    ctx.fillStyle = '#F5DEB3'
-    ctx.fillRect(0, 50, 16, 12)
-    ctx.fillStyle = '#333333'
-    ctx.font = '6px Arial'
-    ctx.fillText('We', 4, 58)
-
-    // Head - larger, more prominent
+    // Head - prominent
     ctx.fillStyle = '#FFCC99'
-    ctx.fillRect(28, 2, 40, 32)
+    ctx.fillRect(24, 2, 32, 24)
 
-    // Distinguished hair
-    ctx.fillStyle = '#666666'
-    ctx.fillRect(26, 0, 44, 8)
-    ctx.fillRect(24, 2, 6, 14)
-    ctx.fillRect(66, 2, 6, 14)
+    // Distinguished gray hair
+    ctx.fillStyle = '#777777'
+    ctx.fillRect(22, 0, 36, 6)
+    ctx.fillRect(20, 2, 6, 10)
+    ctx.fillRect(54, 2, 6, 10)
 
-    // Eyes - determined
+    // Eyes - determined, powerful
     ctx.fillStyle = '#2A4A6A'
-    ctx.fillRect(36, 12, 6, 4)
-    ctx.fillRect(54, 12, 6, 4)
+    ctx.fillRect(30, 10, 4, 3)
+    ctx.fillRect(46, 10, 4, 3)
     ctx.fillStyle = '#000000'
-    ctx.fillRect(38, 13, 2, 2)
-    ctx.fillRect(56, 13, 2, 2)
+    ctx.fillRect(31, 11, 2, 1)
+    ctx.fillRect(47, 11, 2, 1)
 
-    // Confident smile
+    // Confident presidential smile
     ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(40, 24, 16, 4)
+    ctx.fillRect(34, 18, 12, 4)
     ctx.strokeStyle = '#CC8866'
-    ctx.strokeRect(40, 24, 16, 4)
+    ctx.lineWidth = 1
+    ctx.strokeRect(34, 18, 12, 4)
 
     // Presidential seal pin
     ctx.fillStyle = '#FFD700'
     ctx.beginPath()
-    ctx.arc(24, 42, 6, 0, Math.PI * 2)
+    ctx.arc(20, 32, 5, 0, Math.PI * 2)
     ctx.fill()
     ctx.fillStyle = '#FFFFFF'
     ctx.beginPath()
-    ctx.arc(24, 42, 4, 0, Math.PI * 2)
+    ctx.arc(20, 32, 3, 0, Math.PI * 2)
     ctx.fill()
     ctx.fillStyle = '#0000AA'
     ctx.beginPath()
-    ctx.arc(24, 42, 2, 0, Math.PI * 2)
+    ctx.arc(20, 32, 1.5, 0, Math.PI * 2)
     ctx.fill()
-
-    // American flag behind (simplified)
-    ctx.fillStyle = '#CC0000'
-    ctx.fillRect(82, 4, 12, 2)
-    ctx.fillStyle = '#FFFFFF'
-    ctx.fillRect(82, 6, 12, 2)
-    ctx.fillStyle = '#CC0000'
-    ctx.fillRect(82, 8, 12, 2)
-    ctx.fillStyle = '#0000AA'
-    ctx.fillRect(82, 4, 4, 6)
 
     // Outline
     ctx.strokeStyle = '#111111'
     ctx.lineWidth = 2
-    ctx.strokeRect(16, 32, 64, 42)
+    ctx.strokeRect(16, 24, 48, 32)
   }
 }
