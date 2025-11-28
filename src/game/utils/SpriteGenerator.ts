@@ -124,6 +124,9 @@ export class SpriteGenerator {
       case 'lobbyist':
         this.drawLobbyist(canvas, ctx)
         break
+      case 'camera_drone':
+        this.drawCameraDrone(canvas, ctx)
+        break
       default:
         canvas.width = 48
         canvas.height = 48
@@ -501,6 +504,80 @@ export class SpriteGenerator {
     // Outline
     ctx.strokeStyle = '#222222'
     ctx.strokeRect(12, 18, 24, 18)
+  }
+
+  private static drawCameraDrone(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): void {
+    canvas.width = 40
+    canvas.height = 36
+    ctx.clearRect(0, 0, 40, 36)
+
+    // Propeller blur effect (top)
+    ctx.fillStyle = 'rgba(100, 100, 100, 0.3)'
+    ctx.beginPath()
+    ctx.ellipse(10, 6, 8, 3, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.ellipse(30, 6, 8, 3, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Propeller arms
+    ctx.fillStyle = '#444444'
+    ctx.fillRect(6, 8, 8, 3)
+    ctx.fillRect(26, 8, 8, 3)
+
+    // Main drone body
+    ctx.fillStyle = '#333333'
+    ctx.fillRect(12, 10, 16, 14)
+
+    // Body details
+    ctx.fillStyle = '#555555'
+    ctx.fillRect(14, 12, 12, 10)
+
+    // Camera lens (front)
+    ctx.fillStyle = '#111111'
+    ctx.beginPath()
+    ctx.arc(20, 28, 6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#2244AA'
+    ctx.beginPath()
+    ctx.arc(20, 28, 4, 0, Math.PI * 2)
+    ctx.fill()
+    // Lens reflection
+    ctx.fillStyle = '#88AAFF'
+    ctx.beginPath()
+    ctx.arc(18, 26, 1.5, 0, Math.PI * 2)
+    ctx.fill()
+
+    // LED indicator lights
+    ctx.fillStyle = '#FF0000'
+    ctx.beginPath()
+    ctx.arc(14, 14, 1.5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#00FF00'
+    ctx.beginPath()
+    ctx.arc(26, 14, 1.5, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Propeller hubs
+    ctx.fillStyle = '#222222'
+    ctx.beginPath()
+    ctx.arc(10, 8, 3, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(30, 8, 3, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Landing skids
+    ctx.fillStyle = '#333333'
+    ctx.fillRect(8, 32, 4, 3)
+    ctx.fillRect(28, 32, 4, 3)
+    ctx.fillRect(6, 33, 8, 2)
+    ctx.fillRect(26, 33, 8, 2)
+
+    // Outline
+    ctx.strokeStyle = '#111111'
+    ctx.lineWidth = 1
+    ctx.strokeRect(12, 10, 16, 14)
   }
 
   static generateProjectileSprite(type: string): PIXI.Texture {

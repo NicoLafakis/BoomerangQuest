@@ -19,6 +19,15 @@ import { SenatorPair } from '../bosses/SenatorPair'
 import { Speaker } from '../bosses/Speaker'
 import { VicePresident } from '../bosses/VicePresident'
 import { President } from '../bosses/President'
+import {
+  BossHazard,
+  BeamSweep,
+  Shockwave,
+  LingeringZone,
+  TargetReticle,
+  Explosion,
+  ReflectiveBarrier
+} from '../bosses/attacks'
 
 const CONTACT_DAMAGE = 10
 const ROOM_CLEAR_BONUS = 500
@@ -36,6 +45,7 @@ export class GameScene extends Scene {
   // Boss tracking
   private currentBoss: Boss | null = null
   private isBossRoom: boolean = false
+  private bossHazards: BossHazard[] = []
 
   // Boss health bar UI
   private bossHealthBarBg!: PIXI.Graphics
@@ -47,6 +57,7 @@ export class GameScene extends Scene {
   private maxRoomsPerLevel: number[] = [0, 4, 5, 5, 6, 6] // Level 0 unused
 
   private backgroundLayer!: PIXI.Container
+  private hazardLayer!: PIXI.Container
   private entityLayer!: PIXI.Container
   private projectileLayer!: PIXI.Container
   private uiLayer!: PIXI.Container
@@ -64,11 +75,13 @@ export class GameScene extends Scene {
   init(): void {
     // Create layer structure
     this.backgroundLayer = new PIXI.Container()
+    this.hazardLayer = new PIXI.Container()
     this.entityLayer = new PIXI.Container()
     this.projectileLayer = new PIXI.Container()
     this.uiLayer = new PIXI.Container()
 
     this.container.addChild(this.backgroundLayer)
+    this.container.addChild(this.hazardLayer)
     this.container.addChild(this.entityLayer)
     this.container.addChild(this.projectileLayer)
     this.container.addChild(this.uiLayer)
@@ -246,6 +259,15 @@ export class GameScene extends Scene {
     }
     this.projectiles = []
 
+    // Clear boss hazards
+    for (const hazard of this.bossHazards) {
+      if (hazard.graphics.parent) {
+        hazard.graphics.parent.removeChild(hazard.graphics)
+      }
+      hazard.destroy()
+    }
+    this.bossHazards = []
+
     // Create new room
     const config = generateRoomConfig(this.currentLevel, this.currentRoom)
     this.room = new Room(config)
@@ -376,6 +398,13 @@ export class GameScene extends Scene {
       }
     }
 
+    // Update boss hazards
+    for (const hazard of this.bossHazards) {
+      if (hazard.active) {
+        hazard.update(dt)
+      }
+    }
+
     // Handle collisions
     this.handleCollisions()
 
@@ -428,6 +457,157 @@ export class GameScene extends Scene {
     const enemy = new Enemy(config, x, y)
     this.room.enemies.push(enemy)
     this.entityLayer.addChild(enemy.sprite)
+  }
+
+  /**
+   * Spawn a beam sweep hazard
+   */
+  spawnBeamSweep(
+    startAngle: number,
+    endAngle: number,
+    length: number,
+    width: number,
+    damage: number,
+    duration: number
+  ): BeamSweep | null {
+    if (!this.currentBoss) return null
+
+    const beam = new BeamSweep(
+      this.currentBoss.x,
+      this.currentBoss.y,
+      startAngle,
+      endAngle,
+      length,
+      width,
+      damage,
+      duration,
+      this.currentBoss
+    )
+
+    this.bossHazards.push(beam)
+    this.hazardLayer.addChild(beam.graphics)
+    return beam
+  }
+
+  /**
+   * Spawn a shockwave hazard
+   */
+  spawnShockwave(
+    x: number,
+    y: number,
+    maxRadius: number,
+    ringThickness: number,
+    expansionSpeed: number,
+    damage: number,
+    color?: number
+  ): Shockwave {
+    const shockwave = new Shockwave(
+      x,
+      y,
+      maxRadius,
+      ringThickness,
+      expansionSpeed,
+      damage,
+      color
+    )
+
+    this.bossHazards.push(shockwave)
+    this.hazardLayer.addChild(shockwave.graphics)
+    return shockwave
+  }
+
+  /**
+   * Spawn a lingering zone hazard
+   */
+  spawnLingeringZone(
+    x: number,
+    y: number,
+    radius: number,
+    damage: number,
+    duration: number,
+    damageInterval?: number,
+    color?: number
+  ): LingeringZone {
+    const zone = new LingeringZone(
+      x,
+      y,
+      radius,
+      damage,
+      duration,
+      damageInterval,
+      color
+    )
+
+    this.bossHazards.push(zone)
+    this.hazardLayer.addChild(zone.graphics)
+    return zone
+  }
+
+  /**
+   * Spawn a target reticle that creates an explosion after delay
+   */
+  spawnTargetReticle(
+    x: number,
+    y: number,
+    radius: number,
+    delay: number,
+    explosionDamage: number
+  ): TargetReticle {
+    const reticle = new TargetReticle(x, y, radius, delay, (ex, ey, er) => {
+      this.spawnExplosion(ex, ey, er, explosionDamage)
+    })
+
+    this.bossHazards.push(reticle)
+    this.hazardLayer.addChild(reticle.graphics)
+    return reticle
+  }
+
+  /**
+   * Spawn an explosion hazard
+   */
+  spawnExplosion(
+    x: number,
+    y: number,
+    radius: number,
+    damage: number,
+    duration?: number,
+    color?: number
+  ): Explosion {
+    const explosion = new Explosion(x, y, radius, damage, duration, color)
+
+    this.bossHazards.push(explosion)
+    this.hazardLayer.addChild(explosion.graphics)
+    return explosion
+  }
+
+  /**
+   * Spawn a reflective barrier hazard
+   */
+  spawnReflectiveBarrier(
+    angle: number,
+    width: number,
+    length: number,
+    offsetDistance: number,
+    damage: number,
+    duration: number
+  ): ReflectiveBarrier | null {
+    if (!this.currentBoss) return null
+
+    const barrier = new ReflectiveBarrier(
+      this.currentBoss.x,
+      this.currentBoss.y,
+      angle,
+      width,
+      length,
+      offsetDistance,
+      damage,
+      duration,
+      this.currentBoss
+    )
+
+    this.bossHazards.push(barrier)
+    this.hazardLayer.addChild(barrier.graphics)
+    return barrier
   }
 
   private fireWeapon(baseAngle: number): void {
@@ -628,6 +808,44 @@ export class GameScene extends Scene {
         this.collectPickup(pickup)
       }
     }
+
+    // Player vs boss hazards
+    for (const hazard of this.bossHazards) {
+      if (!hazard.active) continue
+
+      // Special handling for LingeringZone (damage over time)
+      if (hazard instanceof LingeringZone) {
+        const zone = hazard as LingeringZone
+        if (zone.checkCollision(playerBounds) && zone.canDealDamage()) {
+          const died = this.player.takeDamage(zone.damage)
+          this.tookDamageThisRoom = true
+
+          if (died) {
+            this.onPlayerDeath()
+            return
+          }
+        }
+      } else if (hazard.checkCollision(playerBounds)) {
+        // Standard hazard damage
+        const died = this.player.takeDamage(hazard.damage)
+        this.tookDamageThisRoom = true
+
+        if (died) {
+          this.onPlayerDeath()
+          return
+        }
+      }
+
+      // ReflectiveBarrier reflects player projectiles
+      if (hazard instanceof ReflectiveBarrier) {
+        const barrier = hazard as ReflectiveBarrier
+        for (const proj of this.projectiles) {
+          if (proj.active && proj.isPlayerProjectile) {
+            barrier.checkProjectileReflection(proj)
+          }
+        }
+      }
+    }
   }
 
   private trySpawnPickup(x: number, y: number): void {
@@ -711,6 +929,18 @@ export class GameScene extends Scene {
         this.pickups.splice(i, 1)
       }
     }
+
+    // Remove inactive boss hazards
+    for (let i = this.bossHazards.length - 1; i >= 0; i--) {
+      const hazard = this.bossHazards[i]
+      if (!hazard.active) {
+        if (hazard.graphics.parent) {
+          hazard.graphics.parent.removeChild(hazard.graphics)
+        }
+        hazard.destroy()
+        this.bossHazards.splice(i, 1)
+      }
+    }
   }
 
   private onRoomCleared(): void {
@@ -791,6 +1021,15 @@ export class GameScene extends Scene {
         }
       }
     }
+    // Clean up boss hazards
+    for (const hazard of this.bossHazards) {
+      if (hazard.graphics.parent) {
+        hazard.graphics.parent.removeChild(hazard.graphics)
+      }
+      hazard.destroy()
+    }
+    this.bossHazards = []
+
     super.destroy()
   }
 }
