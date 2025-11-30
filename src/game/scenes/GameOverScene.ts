@@ -2,11 +2,13 @@ import * as PIXI from 'pixi.js'
 import { Scene } from './Scene'
 import { Game, GAME_WIDTH, GAME_HEIGHT } from '../Game'
 import { playSound } from '../systems/AudioManager'
+import { playMusic } from '../systems/MusicManager'
 
 export class GameOverScene extends Scene {
   private restartPrompt!: PIXI.Text
   private flashTimer: number = 0
   private score: number = 0
+  private isVictory: boolean = false
 
   constructor(game: Game) {
     super(game)
@@ -14,27 +16,47 @@ export class GameOverScene extends Scene {
 
   init(data?: Record<string, unknown>): void {
     this.score = (data?.score as number) || 0
+    this.isVictory = (data?.victory as boolean) || false
 
-    // Background
+    // Play appropriate music
+    playMusic(this.isVictory ? 'victory' : 'gameover')
+
+    // Background - different color for victory
     const bg = new PIXI.Graphics()
-    bg.beginFill(0x2a0a0a)
+    bg.beginFill(this.isVictory ? 0x0a2a0a : 0x2a0a0a)
     bg.drawRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
     bg.endFill()
     this.container.addChild(bg)
 
-    // Game Over text
-    const gameOver = new PIXI.Text('GAME OVER', {
-      fontFamily: 'Arial',
-      fontSize: 72,
-      fontWeight: 'bold',
-      fill: '#ff4444',
-      stroke: '#000000',
-      strokeThickness: 4,
-    })
-    gameOver.anchor.set(0.5)
-    gameOver.x = GAME_WIDTH / 2
-    gameOver.y = GAME_HEIGHT / 3
-    this.container.addChild(gameOver)
+    // Title text - victory or game over
+    const titleText = new PIXI.Text(
+      this.isVictory ? 'VICTORY!' : 'GAME OVER',
+      {
+        fontFamily: 'Arial',
+        fontSize: 72,
+        fontWeight: 'bold',
+        fill: this.isVictory ? '#44ff44' : '#ff4444',
+        stroke: '#000000',
+        strokeThickness: 4,
+      }
+    )
+    titleText.anchor.set(0.5)
+    titleText.x = GAME_WIDTH / 2
+    titleText.y = GAME_HEIGHT / 4
+    this.container.addChild(titleText)
+
+    // Subtitle for victory
+    if (this.isVictory) {
+      const subtitle = new PIXI.Text('You Defeated the Government!', {
+        fontFamily: 'Arial',
+        fontSize: 28,
+        fill: '#88ff88',
+      })
+      subtitle.anchor.set(0.5)
+      subtitle.x = GAME_WIDTH / 2
+      subtitle.y = GAME_HEIGHT / 4 + 60
+      this.container.addChild(subtitle)
+    }
 
     // Final score
     const scoreText = new PIXI.Text(`Final Score: ${this.score}`, {
@@ -48,11 +70,14 @@ export class GameOverScene extends Scene {
     this.container.addChild(scoreText)
 
     // Restart prompt
-    this.restartPrompt = new PIXI.Text('Click to Restart', {
-      fontFamily: 'Arial',
-      fontSize: 28,
-      fill: '#ffffff',
-    })
+    this.restartPrompt = new PIXI.Text(
+      this.isVictory ? 'Click to Play Again' : 'Click to Restart',
+      {
+        fontFamily: 'Arial',
+        fontSize: 28,
+        fill: '#ffffff',
+      }
+    )
     this.restartPrompt.anchor.set(0.5)
     this.restartPrompt.x = GAME_WIDTH / 2
     this.restartPrompt.y = GAME_HEIGHT * 0.7
@@ -68,7 +93,8 @@ export class GameOverScene extends Scene {
     const input = this.game.input.getState()
     if (input.fireJustPressed) {
       playSound('menu_select')
-      this.game.sceneManager.switchTo('game')
+      // Go back to title on victory, straight to game on defeat
+      this.game.sceneManager.switchTo(this.isVictory ? 'title' : 'game')
     }
   }
 }

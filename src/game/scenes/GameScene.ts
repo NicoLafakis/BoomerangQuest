@@ -45,6 +45,8 @@ import {
   playSound,
   playNoise
 } from '../systems/AudioManager'
+import { playMusic } from '../systems/MusicManager'
+import { LevelBackground } from '../systems/LevelBackground'
 
 const CONTACT_DAMAGE = 10
 const ROOM_CLEAR_BONUS = 500
@@ -88,6 +90,7 @@ export class GameScene extends Scene {
   // Effects systems
   private camera!: Camera
   private particleSystem!: ParticleSystem
+  private levelBackground!: LevelBackground
 
   constructor(game: Game) {
     super(game)
@@ -110,12 +113,15 @@ export class GameScene extends Scene {
     // Initialize effects systems
     this.camera = initCamera(this.container)
     this.particleSystem = initParticleSystem(this.projectileLayer)
+    this.levelBackground = new LevelBackground()
+    this.backgroundLayer.addChild(this.levelBackground.getGraphics())
+    this.backgroundLayer.addChild(this.levelBackground.getDecorations())
 
     // Resume audio context on user interaction
     getAudioManager().resume()
 
-    // Draw background
-    this.drawBackground()
+    // Initial background (will be redrawn in startRoom)
+    this.levelBackground.draw(this.currentLevel)
 
     // Create player
     this.player = new Player()
@@ -221,32 +227,6 @@ export class GameScene extends Scene {
     this.bossNameText.text = this.currentBoss.getName()
   }
 
-  private drawBackground(): void {
-    const bg = new PIXI.Graphics()
-
-    // Floor
-    bg.beginFill(0x2a2a3e)
-    bg.drawRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
-    bg.endFill()
-
-    // Grid pattern
-    bg.lineStyle(1, 0x3a3a4e, 0.5)
-    for (let x = 0; x < GAME_WIDTH; x += 40) {
-      bg.moveTo(x, 0)
-      bg.lineTo(x, GAME_HEIGHT)
-    }
-    for (let y = 0; y < GAME_HEIGHT; y += 40) {
-      bg.moveTo(0, y)
-      bg.lineTo(GAME_WIDTH, y)
-    }
-
-    // Wall borders
-    bg.lineStyle(4, 0x555566)
-    bg.drawRect(2, 2, GAME_WIDTH - 4, GAME_HEIGHT - 4)
-
-    this.backgroundLayer.addChild(bg)
-  }
-
   private startRoom(): void {
     this.tookDamageThisRoom = false
     this.roomClearedText.visible = false
@@ -300,6 +280,16 @@ export class GameScene extends Scene {
     const config = generateRoomConfig(this.currentLevel, this.currentRoom)
     this.room = new Room(config)
     this.isBossRoom = config.isBoss || false
+
+    // Update background for current level
+    this.levelBackground.draw(this.currentLevel)
+
+    // Play appropriate music
+    if (this.isBossRoom) {
+      playMusic('boss')
+    } else {
+      playMusic('gameplay')
+    }
 
     // Spawn boss if boss room
     if (this.isBossRoom && config.bossType) {
@@ -1110,7 +1100,7 @@ export class GameScene extends Scene {
 
       if (this.currentLevel > 5) {
         // Game won!
-        this.game.sceneManager.switchTo('gameover', { score: this.player.score })
+        this.game.sceneManager.switchTo('gameover', { score: this.player.score, victory: true })
         return
       }
     }
@@ -1183,6 +1173,9 @@ export class GameScene extends Scene {
     }
     if (this.camera) {
       this.camera.destroy()
+    }
+    if (this.levelBackground) {
+      this.levelBackground.destroy()
     }
 
     super.destroy()

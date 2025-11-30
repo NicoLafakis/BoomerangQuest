@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js'
 import { Scene } from './Scene'
 import { Game, GAME_WIDTH, GAME_HEIGHT } from '../Game'
 import { getAudioManager, playSound } from '../systems/AudioManager'
+import { getMusicManager, playMusic } from '../systems/MusicManager'
 
 export class TitleScene extends Scene {
   private startPrompt!: PIXI.Text
@@ -11,6 +12,10 @@ export class TitleScene extends Scene {
   }
 
   init(): void {
+    // Start menu music
+    getMusicManager().resume()
+    playMusic('menu')
+
     // Background
     const bg = new PIXI.Graphics()
     bg.beginFill(0x1a1a2e)
