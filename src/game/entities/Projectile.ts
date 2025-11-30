@@ -1,4 +1,4 @@
-import { Entity } from './Entity'
+import { Entity, SPRITE_SCALE } from './Entity'
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game'
 import { SpriteGenerator } from '../utils/SpriteGenerator'
 
@@ -33,13 +33,13 @@ export class Projectile extends Entity {
 
     this.sprite.rotation = angle
 
-    // Adjust size based on type
+    // Adjust size based on type (values are scaled by SPRITE_SCALE in Entity)
     if (config.type === 'laser') {
-      this.width = 20
-      this.height = 4
+      this.width = 24 * SPRITE_SCALE
+      this.height = 6 * SPRITE_SCALE
     } else if (config.type === 'wrench') {
-      this.width = 16
-      this.height = 16
+      this.width = 16 * SPRITE_SCALE
+      this.height = 16 * SPRITE_SCALE
     }
   }
 

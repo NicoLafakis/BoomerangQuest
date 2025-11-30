@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js'
 import { Boss, BossConfig, BossAttack, BossPhase, BossState } from './Boss'
 import { Player } from '../entities/Player'
+import { SPRITE_SCALE } from '../entities/Entity'
 import { SpriteGenerator } from '../utils/SpriteGenerator'
 import { GAME_WIDTH, GAME_HEIGHT } from '../Game'
 import { angleBetween, distance } from '../utils/Collision'
@@ -315,7 +316,8 @@ export class SenatorPair extends Boss {
     }
 
     this.secondSenator.sprite.anchor.set(0.5)
-    this.secondSenator.sprite.scale.set(this.config.width / secondTexture.width)
+    // Scale to match first senator (uses SPRITE_SCALE from Entity)
+    this.secondSenator.sprite.scale.set(SPRITE_SCALE)
 
     this.idleDuration = 1.2
   }
